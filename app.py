@@ -42,7 +42,7 @@ data_mode = st.sidebar.radio(
 )
 
 # -----------------------------
-# Load Data
+# LOAD DATA
 # -----------------------------
 if data_mode == "Demo Dataset":
     df = generate_demo_data(200)
@@ -56,10 +56,52 @@ else:
         st.stop()
 
     df = pd.read_csv(file)
-    st.sidebar.success("Custom data loaded ✅")
+
+    # -----------------------------
+    # CLEAN COLUMN NAMES
+    # -----------------------------
+    df.columns = df.columns.str.strip().str.lower()
+
+    # -----------------------------
+    # REQUIRED COLUMNS CHECK
+    # -----------------------------
+    required_cols = [
+        "customer_id", "sku", "order_date",
+        "selling_price", "standard_cost", "cogs", "ppv"
+    ]
+
+    missing_cols = [col for col in required_cols if col not in df.columns]
+
+    if missing_cols:
+        st.error(f"Missing required columns: {missing_cols}")
+        st.stop()
+
+    # -----------------------------
+    # CLEAN NUMERIC DATA
+    # -----------------------------
+    numeric_cols = ["selling_price", "standard_cost", "cogs", "ppv"]
+
+    for col in numeric_cols:
+        df[col] = (
+            df[col]
+            .astype(str)
+            .str.replace("$", "", regex=False)
+            .str.replace(",", "", regex=False)
+            .str.strip()
+        )
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # -----------------------------
+    # HANDLE NULLS
+    # -----------------------------
+    if df[numeric_cols].isnull().any().any():
+        st.warning("Some values were invalid and set to 0")
+        df[numeric_cols] = df[numeric_cols].fillna(0)
+
+    st.sidebar.success("Custom data cleaned and loaded ✅")
 
 # -----------------------------
-# Data Preview
+# DATA PREVIEW
 # -----------------------------
 st.markdown("### 🧪 Dataset Preview")
 
@@ -67,7 +109,7 @@ with st.expander("View Raw Data"):
     st.dataframe(df.head(50), use_container_width=True)
 
 # -----------------------------
-# Filters
+# FILTERS
 # -----------------------------
 st.sidebar.markdown("### 🔍 Filters")
 
@@ -89,7 +131,7 @@ df = df[
 ]
 
 # -----------------------------
-# Simulation Control
+# SIMULATION
 # -----------------------------
 ppv_adjustment = st.sidebar.slider(
     "Simulate PPV Increase (%)",
@@ -99,7 +141,7 @@ ppv_adjustment = st.sidebar.slider(
 df["ppv"] = df["ppv"] + (df["standard_cost"] * ppv_adjustment / 100)
 
 # -----------------------------
-# Processing
+# PROCESSING
 # -----------------------------
 df = compute_ppv_impact(df)
 df = add_time_features(df)
@@ -111,7 +153,7 @@ customer_df = customer_analysis(df)
 df["margin_loss_percent"] = df["margin_loss_percent"] * 100
 
 # -----------------------------
-# Summary
+# DESCRIPTION
 # -----------------------------
 st.markdown("""
 ### 📊 What this shows:
@@ -130,7 +172,7 @@ col2.metric("Avg Loss %", round(df["margin_loss_percent"].mean(), 2))
 col3.metric("Worst Customer Loss", round(customer_df["margin_loss"].max(), 2))
 
 # -----------------------------
-# Charts
+# CHARTS
 # -----------------------------
 st.markdown("### 📈 Monthly Margin Loss Trend")
 st.line_chart(monthly_df.set_index("month")["margin_loss"])
@@ -146,13 +188,13 @@ st.bar_chart(
 )
 
 # -----------------------------
-# Distribution
+# DISTRIBUTION
 # -----------------------------
 st.markdown("### 📊 Margin Loss Distribution")
 st.bar_chart(df["margin_loss"])
 
 # -----------------------------
-# Top Orders
+# TOP ORDERS
 # -----------------------------
 st.markdown("### 🔴 Top Margin Loss Orders")
 
@@ -169,7 +211,7 @@ st.dataframe(
 )
 
 # -----------------------------
-# Table
+# TABLE
 # -----------------------------
 st.markdown("### 📋 Order-Level Analysis")
 
@@ -187,7 +229,7 @@ st.dataframe(
 )
 
 # -----------------------------
-# Footer
+# FOOTER
 # -----------------------------
 st.markdown("---")
 st.caption("Built by Rutwik Satish | MarginSight AI")
