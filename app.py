@@ -232,4 +232,4 @@ st.dataframe(
 # FOOTER
 # -----------------------------
 st.markdown("---")
-st.caption("Built by Rutwik Satish | MarginSight AI")
+st.caption("Built by BASIL SAJU | MarginSight AI")
